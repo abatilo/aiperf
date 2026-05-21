@@ -44,3 +44,9 @@ The user had previously asked to diagnose why a W&B-backed `aiperf profile` comm
 ## PR Follow-up
 - Created the requested draft PR with `gh pr create --fill-first --draft`; GitHub returned `https://github.com/ai-dynamo/aiperf/pull/972`.
 - Verified the PR with `gh pr view 972 --json url,isDraft,headRefName,headRepositoryOwner,headRepository,baseRefName,title,body,commits,state,maintainerCanModify`: it is open, draft, base `main`, head owner `abatilo`, head ref `abatilo/fix-concurrency-sweep-auth`, and contains commit `be14801e04bb7e36ff6676c962c3d834411c0a29`.
+
+## PR Description Follow-up
+- The commit body did not mention `--prefill-concurrency`; it correctly described comma-list concurrency sweeps.
+- `gh pr view 972 --json title,body,isDraft` showed the PR body had an auto-generated CodeRabbit release-notes block that incorrectly referred to `--prefill-concurrency`, and the PR had become non-draft.
+- Cleaned the PR body with `gh pr edit 972 --body ...` so it now only contains the short commit-style description and DCO sign-off.
+- Restored draft state with `gh pr ready 972 --undo`.
