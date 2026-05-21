@@ -36,3 +36,7 @@ The user had previously asked to diagnose why a W&B-backed `aiperf profile` comm
 
 ## Open Questions
 - None. The PR still needs to be pushed and opened after this note is attached.
+
+## Push Follow-up
+- Attempted the requested branch push to `origin` first with `git push -u origin abatilo/fix-concurrency-sweep-auth`, but GitHub returned `remote: Permission to ai-dynamo/aiperf.git denied to abatilo` and `fatal: unable to access 'https://github.com/ai-dynamo/aiperf.git/': The requested URL returned error: 403`.
+- Pushed the branch to the configured fork remote instead with `git push -u fork abatilo/fix-concurrency-sweep-auth`, which succeeded and set the upstream to `fork/abatilo/fix-concurrency-sweep-auth`.
