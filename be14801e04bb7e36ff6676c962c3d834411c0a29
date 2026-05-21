@@ -1,0 +1,38 @@
+## Conversation
+The user had previously asked to diagnose why a W&B-backed `aiperf profile` command succeeded with `--concurrency 1` but failed all requests with `--concurrency 1,2`. After the fix was implemented and verified, the user asked to stash the current changes, start a new branch based off `origin/main`, write a short logical commit matching the tone of nearby commits without exposing too much internal detail, commit to `abatilo/fix-concurrency-sweep-auth`, push, and create a draft PR using `gh pr create --fill-first --draft`.
+
+## Actions
+- Inspected current state with `git status --short --branch`; the checkout was on local `main`, ahead of `origin/main` by one unrelated commit, with two tracked fix files modified and several unrelated untracked local artifacts present.
+- Read recent commit subjects and bodies with `git log --oneline --decorate -8` and `git log --show-notes --decorate -3 --format=fuller` to match local tone.
+- Stashed only the two tracked fix files with `git stash push -m "wip: concurrency sweep auth fix" -- src/aiperf/config/loader/plan.py tests/unit/config/test_cli_magic_list_sugar.py`, intentionally leaving unrelated untracked local files alone.
+- Ran `git fetch origin` and created `abatilo/fix-concurrency-sweep-auth` directly from `origin/main` using `git switch -c abatilo/fix-concurrency-sweep-auth origin/main`.
+- Applied the stash with `git stash apply stash@{0}` and confirmed the branch base with `git merge-base HEAD origin/main`, `git rev-parse HEAD`, and `git rev-parse origin/main`; all resolved to `83bdcd92fb21e136ade3a22435c1f087240e5c45` before committing.
+- Verified the diff only touched `src/aiperf/config/loader/plan.py` and `tests/unit/config/test_cli_magic_list_sugar.py`.
+- Ran focused checks: `uv run ruff format --check src/aiperf/config/loader/plan.py tests/unit/config/test_cli_magic_list_sugar.py`, `uv run ruff check src/aiperf/config/loader/plan.py tests/unit/config/test_cli_magic_list_sugar.py`, `uv run --python 3.13 --with python-multipart pytest tests/unit/config/test_cli_magic_list_sugar.py -q`, and `git diff --check`.
+- Ran file-scoped pre-commit on the final branch with `uv run --python 3.13 pre-commit run --files src/aiperf/config/loader/plan.py tests/unit/config/test_cli_magic_list_sugar.py`. All hooks passed except `test-imports`, which failed because the local `.venv` lacks `python-multipart`.
+- Independently validated the import hook with transient dependencies using `uv run --python 3.13 --with python-multipart --with jsonschema pytest tests/unit/test_imports.py -q`; it passed.
+- Staged only the two intended files and committed with `git commit -s -m "fix: preserve auth for CLI concurrency sweeps" -m "Comma-list concurrency runs expand into separate benchmark configs before execution. Keep runtime-only expansion faithful so each generated run can authenticate while exported artifacts continue to redact secrets."`.
+
+## Errors & Mistakes
+- `pre-commit` was not on PATH when first attempted earlier in the session, so it had to be invoked as `uv run --python 3.13 pre-commit ...`.
+- File-scoped pre-commit on local `main` earlier failed `no-commit-to-branch` because the checkout was on `main`; after creating the feature branch, that hook passed.
+- The `test-imports` pre-commit hook failed on this machine because the existing `.venv` lacks `python-multipart`; after adding only `python-multipart` transiently, `tests/unit/test_imports.py` then reported a missing `jsonschema`. With both `python-multipart` and `jsonschema` supplied via `uv --with`, the import test passed.
+- No actual W&B API key value was printed or written into this note.
+
+## Dead Ends
+- None for the branch/commit workflow. The previous debugging work included a local mock-server attempt that was stopped because an artificial `--workers-max 1` cap made the second concurrency cell unsuitable for reproducing the hosted W&B failure.
+
+## Hints for Future Agents
+- Do not change or stage the unrelated untracked local files currently present in this checkout unless the user explicitly asks; they predate this branch workflow and are not part of this commit.
+- The remaining stash entry `stash@{0}: On main: wip: concurrency sweep auth fix` contains the same tracked fix that was applied to this branch. It was left intact as a safety copy rather than dropped automatically.
+- The local `.venv` is missing dependencies used by the repo's `test-imports` hook. The code path was validated by running the hook's underlying pytest command with transient dependencies instead of mutating the environment.
+- If pushing notes is required, push `refs/notes/commits` after the branch push.
+
+## Codebase Discoveries
+- `--concurrency 1,2` is promoted into a sweep plan. Direct CLI-origin `AIPerfConfig` instances without `_raw_envelope` previously used JSON-mode dumping during plan expansion.
+- JSON-mode dumping invokes redaction serializers for sensitive fields, which is correct for artifacts but wrong for runtime-only benchmark expansion.
+- Python-mode dumping with `context={"include_secrets": True}` preserves the runtime API key for generated benchmark configs without changing artifact redaction behavior.
+- `tests/unit/config/test_cli_magic_list_sugar.py` is the focused place for CLI comma-list sweep sugar coverage.
+
+## Open Questions
+- None. The PR still needs to be pushed and opened after this note is attached.
